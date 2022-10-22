@@ -12,4 +12,9 @@ public class CompareImagesTest {
     void testBasicComparison() throws IOException {
         assertEquals(8.66, compare("People.jpg", "People2.jpg", Options.ignoreLess()));
     }
+
+    @Test
+    void testIdentical() throws IOException {
+        assertEquals(0.0, compare("People.jpg", "People.jpg", Options.ignoreNothing()));
+    }
 }

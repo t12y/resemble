@@ -90,6 +90,7 @@ public class Resemble {
     }
 
     private static boolean isColorSimilar(double baselineColor, double latestColor, double tolerance) {
+        if (baselineColor == latestColor) return true;
         return Math.abs(baselineColor - latestColor) < tolerance;
     }
 
