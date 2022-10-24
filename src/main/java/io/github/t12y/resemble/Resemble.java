@@ -53,7 +53,7 @@ public class Resemble {
         if (options.ignoredBoxes == null) return true;
 
         for (int[] box : options.ignoredBoxes) {
-            if (x > box[0] && x < box[1] && y > box[2] && y < box[3]) {
+            if (x >= box[0] && x <= box[1] && y >= box[2] && y <= box[3]) {
                 return false;
             }
         }

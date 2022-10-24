@@ -16,7 +16,7 @@ public class ResembleTest {
                 {20, 350, 200, 250}
         };
 
-        assertEquals(1.80, compare("text.png", "textAa.png", options));
+        assertEquals(1.79, compare("text.png", "textAa.png", options));
     }
 
     @Test
