@@ -14,11 +14,11 @@ See [CompareImagesTest.java](src/test/java/io/github/t12y/resemble/CompareImages
 <dependency>
   <groupId>io.github.t12y</groupId>
   <artifactId>resemble</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-compile group: 'io.github.t12y', name: 'resemble', version: '1.0.1'
+compile group: 'io.github.t12y', name: 'resemble', version: '1.0.2'
 ```
