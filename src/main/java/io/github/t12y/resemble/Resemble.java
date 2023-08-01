@@ -7,19 +7,30 @@ public class Resemble {
 
     private final double[] baselinePixels;
     private final double[] latestPixels;
+    private final double[] diffPixels;
     private final Options options;
+    private final ErrorPixelTransformer errorPixelTransformer;
 
     private Resemble(double[] baselinePixels, double[] latestPixels, Options options) {
         this.baselinePixels = baselinePixels;
         this.latestPixels = latestPixels;
         this.options = options;
+
+        if (this.options.compareOnly) {
+            this.diffPixels = null;
+            this.errorPixelTransformer = null;
+        } else {
+            this.diffPixels = new double[this.baselinePixels.length];
+            this.errorPixelTransformer = this.options.getErrorPixelTransformer(
+                    this.baselinePixels, this.latestPixels, this.diffPixels);
+        }
     }
 
-    public static double analyzeImages(double[] baselinePixels, double[] latestPixels, Options options) {
+    public static Result analyzeImages(double[] baselinePixels, double[] latestPixels, Options options) {
         return new Resemble(baselinePixels, latestPixels, options).analyzeImages();
     }
 
-    private double analyzeImages() {
+    public Result analyzeImages() {
         int mismatchCount = 0;
         int offset;
 
@@ -27,26 +38,46 @@ public class Resemble {
             for (int y = 0; y < options.height; y++) {
                 offset = (y * options.width + x) * 4;
 
-                if (offset > baselinePixels.length || !withinComparedArea(x, y) || isIgnoredColor(offset)) {
-                    continue;
-                }
+                if (offset > baselinePixels.length) continue;
+
+                boolean isWithinComparedArea = withinComparedArea(x, y) && !isIgnoredColor(offset);
 
                 if (options.ignoreColors) {
-                    if (!isPixelBrightnessSimilar(offset)) mismatchCount++;
+                    if (isPixelBrightnessSimilar(offset) || !isWithinComparedArea) {
+                        if (!options.compareOnly) copyGrayScalePixel(offset);
+                    } else {
+                        if (!options.compareOnly) errorPixelTransformer.transform(offset);
+                        mismatchCount++;
+                    }
                     continue;
                 }
 
-                if (!isRGBSimilar(offset)) {
-                    if (options.ignoreAntialiasing && (isAntialiased(offset, baselinePixels, x, y) || isAntialiased(offset, latestPixels, x, y))) {
-                        if (isPixelBrightnessSimilar(offset)) continue;
-                    }
-
-                    mismatchCount++;
+                if (isRGBSimilar(offset) || !isWithinComparedArea) {
+                    if (!options.compareOnly) copyPixel(offset);
+                    continue;
                 }
+
+                boolean isMatchDueToAntialiasing = options.ignoreAntialiasing &&
+                        (isAntialiased(offset, baselinePixels, x, y) || isAntialiased(offset, latestPixels, x, y));
+
+                if (isMatchDueToAntialiasing) {
+                    if (isPixelBrightnessSimilar(offset)) {
+                        if (!options.compareOnly) copyGrayScalePixel(offset);
+                    } else {
+                        if (!options.compareOnly) errorPixelTransformer.transform(offset);
+                        mismatchCount++;
+                    }
+                    continue;
+                }
+
+                if (!options.compareOnly) errorPixelTransformer.transform(offset);
+                mismatchCount++;
             }
         }
 
-        return ((double)mismatchCount / (options.height * options.width)) * 100.0;
+        double mismatchedPercent = ((double)mismatchCount / (options.height * options.width)) * 100.0;
+
+        return new Result(options.width, options.height, mismatchedPercent, diffPixels);
     }
 
     private boolean withinComparedArea(int x, int y) {
@@ -175,6 +206,26 @@ public class Resemble {
         }
 
         return hasEquivalentSibling < 2;
+    }
+
+    private void copyPixel(int offset) {
+        if (options.errorType == ErrorType.DiffOnly) return;
+
+        diffPixels[offset]     = baselinePixels[offset];
+        diffPixels[offset + 1] = baselinePixels[offset + 1];
+        diffPixels[offset + 2] = baselinePixels[offset + 2];
+        diffPixels[offset + 3] = baselinePixels[offset + 3] * options.transparency;
+    }
+
+    private void copyGrayScalePixel(int offset) {
+        if (options.errorType == ErrorType.DiffOnly) return;
+
+        double brightness = getBrightness(offset, latestPixels);
+
+        diffPixels[offset]     = brightness;
+        diffPixels[offset + 1] = brightness;
+        diffPixels[offset + 2] = brightness;
+        diffPixels[offset + 3] = latestPixels[offset + 3] * options.transparency;
     }
 }
 

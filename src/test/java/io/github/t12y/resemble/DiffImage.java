@@ -3,6 +3,7 @@ package io.github.t12y.resemble;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 public class DiffImage {
@@ -24,7 +25,7 @@ public class DiffImage {
         this.latestPixels = unpackPixels(latestImage.getRGB(0, 0, width, height, null, 0, width));
     }
 
-    public static double compare(String baselinePath, String latestPath, Options options) throws IOException {
+    public static Result resemble(String baselinePath, String latestPath, Options options) throws IOException {
         ClassLoader cl = DiffImage.class.getClassLoader();
         DiffImage d;
 
@@ -38,7 +39,29 @@ public class DiffImage {
         options.width = d.width;
         options.height = d.height;
 
-        return round(Resemble.analyzeImages(d.baselinePixels, d.latestPixels, options));
+        return Resemble.analyzeImages(d.baselinePixels, d.latestPixels, options);
+    }
+
+    public static boolean diff(String baselinePath, String latestPath, String diffPath, Options options) throws IOException {
+        double[] expectedPixels;
+        try (
+            InputStream diff = DiffImage.class.getClassLoader().getResource(ASSETS_PATH + diffPath).openStream();
+        ) {
+            BufferedImage diffImage = ImageIO.read(diff);
+            int height = diffImage.getHeight();
+            int width = diffImage.getWidth();
+
+            expectedPixels = unpackPixels(diffImage.getRGB(0, 0, width, height, null, 0, width));
+        }
+
+
+        double[] actualPixels = resemble(baselinePath, latestPath, options).diffPixels;
+
+        return Arrays.equals(expectedPixels, actualPixels);
+    }
+
+    public static double compare(String baselinePath, String latestPath, Options options) throws IOException {
+        return round(resemble(baselinePath, latestPath, options).mismatchedPercent);
     }
 
     private static double round(double d) {
