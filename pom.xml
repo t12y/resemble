@@ -4,7 +4,7 @@
 
     <groupId>io.github.t12y</groupId>
     <artifactId>resemble</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>Resemble</name>
